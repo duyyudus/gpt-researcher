@@ -65,7 +65,7 @@ class DeepResearchSkill:
         messages = [
             {"role": "system", "content": "You are an expert researcher generating search queries."},
             {"role": "user",
-             "content": f"Given the following prompt, generate {num_queries} unique search queries to research the topic thoroughly. For each query, provide a research goal. Format as 'Query: <query>' followed by 'Goal: <goal>' for each pair: {query}"}
+             "content": f"Given the following prompt, generate {num_queries} unique search queries to research the topic thoroughly. For each query, provide a research goal. Format as 'Query: <query>' followed by 'Goal: <goal>' for each pair, don't add number to Query, keep everything in plain text style (no bold no italic). Here is the prompt: {query}"}
         ]
 
         response = await create_chat_completion(
@@ -82,6 +82,7 @@ class DeepResearchSkill:
 
         for line in lines:
             line = line.strip()
+            logger.info(f"Processing line: {line}")
             if line.startswith('Query:'):
                 if current_query:
                     queries.append(current_query)
@@ -282,6 +283,7 @@ Format each question on a new line starting with 'Question: '"""}
             on_progress(progress)
 
         # Collect all results
+        logger.info(f"Total successful queries processed: {len(results)} out of {len(serp_queries)}")
         for result in results:
             all_learnings.extend(result['learnings'])
             all_visited_urls.update(result['visited_urls'])

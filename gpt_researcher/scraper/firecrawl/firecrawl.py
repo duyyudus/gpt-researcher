@@ -1,14 +1,17 @@
 from bs4 import BeautifulSoup
 import os
 from ..utils import get_relevant_images
+import logging
+import traceback
 
 class FireCrawl:
 
     def __init__(self, link, session=None):
         self.link = link
         self.session = session
-        from firecrawl import FirecrawlApp
-        self.firecrawl = FirecrawlApp(api_key=self.get_api_key(), api_url=self.get_server_url())
+        self.logger = logging.getLogger(__name__)
+        from firecrawl import Firecrawl
+        self.firecrawl = Firecrawl(api_key=self.get_api_key(), api_url=self.get_server_url())
 
     def get_api_key(self) -> str:
         """
@@ -49,19 +52,23 @@ class FireCrawl:
         """
 
         try:
-            response = self.firecrawl.scrape_url(url=self.link, formats=["markdown"])
+            self.logger.info("Scraping url: " + self.link)
+            response = self.firecrawl.scrape(url=self.link, formats=["markdown"])
+            # self.logger.info("FireCrawl response: " + str(response))
 
             # Check if the page has been scraped success
-            if "error" in response:
-                print("Scrape failed! : " + str(response["error"]))
+            if response.metadata.error:
+                self.logger.error("Scrape failed! : " + str(response.metadata.error))
                 return "", [], ""
-            elif response["metadata"]["statusCode"] != 200:
-                print("Scrape failed! : " + str(response))
+            elif response.metadata.status_code != 200:
+                self.logger.error("Scrape failed! : " + str(response))
                 return "", [], ""
+
+            self.logger.info("Scrape success!")
 
             # Extract the content (markdown) and title from FireCrawl response
             content = response.markdown
-            title = response.metadata.get("title", "")
+            title = response.metadata.title
 
             # Parse the HTML content of the response to create a BeautifulSoup object for the utility functions
             response_bs = self.session.get(self.link, timeout=4)
@@ -75,5 +82,5 @@ class FireCrawl:
             return content, image_urls, title
 
         except Exception as e:
-            print("Error! : " + str(e))
+            self.logger.error("Error! : " + str(e) + "\n" + traceback.format_exc())
             return "", [], ""
